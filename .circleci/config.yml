@@ -1,0 +1,48 @@
+version: 2.1
+
+jobs:
+  rust-checks:
+    docker:
+      - image: cimg/rust:1.75 # Using CircleCI's Rust image
+    steps:
+      - checkout
+
+      # Cache dependencies to speed up builds
+      - restore_cache:
+          keys:
+            - cargo-cache-{{ checksum "Cargo.lock" }}
+            - cargo-cache-
+
+      # Install rustfmt and clippy
+      - run:
+          name: Install Rust Components
+          command: |
+            rustup component add rustfmt
+            rustup component add clippy
+
+      # Check formatting
+      - run:
+          name: Check Formatting
+          command: cargo fmt -- --check
+
+      # Run clippy
+      - run:
+          name: Run Clippy
+          command: cargo clippy -- -D warnings
+
+      # Build project
+      - run:
+          name: Build Project
+          command: cargo build --release
+
+      # Save cache
+      - save_cache:
+          key: cargo-cache-{{ checksum "Cargo.lock" }}
+          paths:
+            - ~/.cargo
+            - target
+
+workflows:
+  rust-workflow:
+    jobs:
+      - rust-checks
